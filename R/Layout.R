@@ -1,8 +1,48 @@
-#### TODO: Fix problem with zero
-
-
-setClass("Layout", slots=c(mat="matrix",widths = "numeric",heights = "numeric"))
-
+#' Print a CustomLayout object.
+#'
+#' @param x object of class CustomLayout.
+#' @param ... optional arguments to print or plot methods. Not used here.
+#'
+#' @export
+#' 
+#' @seealso lay_new lay_show
+#' 
+#' @examples
+#' 
+#' lay  <- lay_new(matrix(1:4,nc=2),widths=c(3,2),heights=c(2,1))
+#' lay2 <- lay_new(matrix(1:3))
+#' cl <- lay_bind_col(lay,lay2, widths=c(3,1))
+#' print(cl)
+#' 
+#' cl2 <- lay_bind_col(cl,cl, c(2,1))
+#' print(cl2)
+#' 
+#' cl3 <- lay_bind_row(cl,cl, c(20,1))
+#' print(cl3) 
+#' 
+print.CustomLayout <- function(x, ...) {
+  
+  xname <- deparse(substitute(x))
+  
+  cat("CustomLayout object:\n")
+  cat("  Specification:\n")
+  
+  mat <- apply(x$mat, 1, function(x) {
+    paste(sprintf("% 3i", x), collapse = "  ")
+  })
+  
+  mat <- paste("  ", sprintf("%3i", x$heights), mat)
+  head <- paste("      ", 
+      paste(sprintf("%3i", x$widths), collapse = "  "))
+  cat(c(head, mat), sep = "\n")
+  
+  cat(
+    "\n\n  To print the layout on your graphics device plese use:",
+    sprintf("  lay(%s)", xname), sep = "\n"
+  )
+  
+  invisible(x)
+}
 
 #' Create custom layout.
 #' 
@@ -14,24 +54,37 @@ setClass("Layout", slots=c(mat="matrix",widths = "numeric",heights = "numeric"))
 #' @rdname lay_new
 #' @examples
 #' library(customLayout)
-#' par(mar = c(3,2,2,1))
-#' lay  <- lay_new(matrix(1:4,nc=2),widths=c(3,2),heights=c(2,1))
+#' set.seed(123)
+#' par(mar = c(3, 2, 2, 1))
+#' 
+#' # Prepare layout
+#' lay  <- lay_new(matrix(1:4, nc = 2),
+#'                 widths = c(3, 2),
+#'                 heights = c(2, 1))
 #' lay2 <- lay_new(matrix(1:3))
-#' cl <- lay_bind_col(lay,lay2, widths=c(3,1))
+#' cl <- lay_bind_col(lay, lay2, widths = c(3, 1))
 #' lay_set(cl) # initialize drawing area
+#' 
+#' # add plots
 #' plot(1:100 + rnorm(100))
 #' plot(rnorm(100), type = "l")
 #' hist(rnorm(500))
 #' acf(rnorm(100))
-#' pie(c(3,4,6),col = 2:4)
-#' pie(c(3,2,7),col = 2:4+3)
-#' pie(c(5,4,2),col = 2:4+6)
+#' pie(c(3, 4, 6), col = 2:4)
+#' pie(c(3, 2, 7), col = 2:4 + 3)
+#' pie(c(5, 4, 2), col = 2:4 + 6)
 #' 
 lay_new <- function(mat, widths = NULL, heights = NULL)
 {
   if(!is.matrix(mat)) mat <- matrix(mat)
   if(is.null(widths)) widths <- rep(1,ncol(mat))
   if(is.null(heights)) heights <- rep(1,nrow(mat))
+  
+  assertthat::assert_that(
+    is.matrix(mat),
+    is.numeric(widths),
+    is.numeric(heights)
+  )
   
   if(ncol(mat) != length(widths)) {
     stop(paste(
@@ -47,8 +100,10 @@ lay_new <- function(mat, widths = NULL, heights = NULL)
     )
   }
   
+  res <- list(mat = mat, widths = widths, heights = heights)
+  class(res) <- "CustomLayout"
   
-  methods::new("Layout",mat=mat,widths = widths, heights = heights)
+  .clean_lay(res)
 }
 
 #' @export
@@ -76,7 +131,12 @@ layCreate <- function(mat, widths = NULL, heights = NULL) {
 #' 
 lay_set <- function(layout)
 {
-  layout(layout@mat,widths=layout@widths,heights=layout@heights)
+  assert_layout(layout)
+  layout(
+    layout$mat,
+    widths = layout$widths,
+    heights = layout$heights
+  )
 }
 
 #' @export
@@ -109,35 +169,38 @@ lay_bind_col <- function(
     widths = c(1, 1),
     addmax = TRUE)
 {
-  xmat <- x@mat
-  ymat <- y@mat
+  assert_layout(x)
+  assert_layout(y)
+  assertthat::assert_that(length(widths) == 2)
+  
+  xmat <- x$mat
+  ymat <- y$mat
   
   # move ids from the second matrix
   if (addmax) {
     ymat[ymat > 0] <- ymat[ymat > 0] + max(xmat)
   }
   
-  ymat <- layRepRow(ymat, y@heights)
-  xmat <- layRepRow(xmat, x@heights)
+  ymat <- lay_rep_row(ymat, y$heights)
+  xmat <- lay_rep_row(xmat, x$heights)
   
   rowx <- nrow(xmat)
   rowy <- nrow(ymat)
   lcm  <- .getSCM(rowx, rowy)
   
-  xmat <- layRepRow(xmat, lcm / rowx)
-  ymat <- layRepRow(ymat, lcm / rowy)
+  xmat <- lay_rep_row(xmat, lcm / rowx)
+  ymat <- lay_rep_row(ymat, lcm / rowy)
   
   mat <- cbind(xmat, ymat)
-  widths <- c(x@widths * widths[1] * sum(y@widths),
-             y@widths * widths[2] * sum(x@widths))
+  widths <- c(x$widths * widths[1] * sum(y$widths),
+             y$widths * widths[2] * sum(x$widths))
   widths  <- widths / .multipleGCD(widths)
   heights <- rep(1, nrow(mat))
   
-  layout <- methods::new("Layout",
-                        mat = mat,
-                        widths = widths,
-                        heights = heights)
-  .cleanLay(layout)
+  lay_new(
+    mat = mat,
+    widths = widths,
+    heights = heights)
 }
 
 #' @rdname lay_bind_col
@@ -176,33 +239,36 @@ lay_bind_row <- function(
    addmax = TRUE
 ) {
   
-  xmat <- x@mat
-  ymat <- y@mat
+  assert_layout(x)
+  assert_layout(y)
+  assertthat::assert_that(length(heights) == 2)
+  
+  xmat <- x$mat
+  ymat <- y$mat
   if (addmax) {
     ymat[ymat > 0] <- ymat[ymat > 0] + max(xmat)
   }
   
-  ymat <- layRepCol(ymat, y@widths)
-  xmat <- layRepCol(xmat, x@widths)
+  ymat <- lay_rep_col(ymat, y$widths)
+  xmat <- lay_rep_col(xmat, x$widths)
   
   colx <- ncol(xmat)
   coly <- ncol(ymat)
   lcm  <- .getSCM(colx, coly)
   
-  xmat <- layRepCol(xmat, lcm / colx)
-  ymat <- layRepCol(ymat, lcm / coly)
+  xmat <- lay_rep_col(xmat, lcm / colx)
+  ymat <- lay_rep_col(ymat, lcm / coly)
   
   mat <- rbind(xmat, ymat)
   widths  <- rep(1, ncol(mat))
-  heights <- c(x@heights * heights[1] * sum(y@heights),
-              sum(x@heights) * y@heights * heights[2])
+  heights <- c(x$heights * heights[1] * sum(y$heights),
+              sum(x$heights) * y$heights * heights[2])
   heights <- heights / .multipleGCD(heights)
   
-  layout <- methods::new("Layout",
-                        mat = mat,
-                        widths = widths,
-                        heights = heights)
-  .cleanLay(layout)
+  lay_new(
+    mat = mat,
+    widths = widths,
+    heights = heights)
 }
 
 #' @export
@@ -240,12 +306,12 @@ layRowBind <- function(
 #' lay_grid(list(pl1, pl2, pl3, pl4), l3)
 #'
 lay_grid <- function(grobs, lay, ...) {
-
+  assert_layout(lay)
   gridExtra::grid.arrange(
     grobs = grobs,
-    layout_matrix = lay@mat,
-    widths = lay@widths,
-    heights = lay@heights, ...)
+    layout_matrix = lay$mat,
+    widths = lay$widths,
+    heights = lay$heights, ...)
 }
 
 #' @export

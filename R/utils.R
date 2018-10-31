@@ -1,15 +1,15 @@
 #' Repeats rows in matrix.
 #' 
 #' @param x matrix
-#' @param fr numeric value or vector with number of repetition of given row.
+#' @param fr numeric value or vector with the number of repetition of a given row.
 #' 
 #' @noRd
 #' @examples
 #' 
-#' layRepRow(matrix(1:4,ncol=2),c(4,2))
-#' layRepRow(matrix(1:4,ncol=2),2)
+#' lay_rep_row(matrix(1:4,ncol=2),c(4,2))
+#' lay_rep_row(matrix(1:4,ncol=2),2)
 #' 
-layRepRow <- function(x,fr)
+lay_rep_row <- function(x,fr)
 {
   nr <- sum(fr)# ilosc wierszy w nowej macierzy:
   nx <- NULL
@@ -22,15 +22,15 @@ layRepRow <- function(x,fr)
 #' Repeats columns in matrix.
 #' 
 #' @param x matrix
-#' @param fr numeric value or vector with number of repetition of given column.
+#' @param fr numeric value or vector with the number of repetition of a given column.
 #' 
 #' @noRd
 #' @examples
 #' 
-#' layRepCol(matrix(1:4,ncol=2),c(4,2))
-#' layRepCol(matrix(1:4,ncol=2),2)
+#' lay_rep_col(matrix(1:4,ncol=2),c(4,2))
+#' lay_rep_col(matrix(1:4,ncol=2),2)
 #' 
-layRepCol <- function(x,fr)
+lay_rep_col <- function(x, fr)
 {
   nr <- sum(fr)# ilosc wierszy w nowej macierzy:
   nx <- NULL
@@ -64,7 +64,7 @@ layRepCol <- function(x,fr)
 lay_show <- function(layout)
 {
   lay_set(layout)
-  n <- max(layout@mat)
+  n <- max(layout$mat)
   
   oma.saved <- graphics::par("oma")
   graphics::par(oma = rep.int(0, 4))
@@ -94,10 +94,15 @@ layShow <- function(layout) {
   lay_show(layout)
 }
 
-.cleanCols <- function(lay)
+#' Internal customLayout function for shrinking the size of layuot's matrix.
+#'
+#' @param lay a CustomLayout object.
+#' @noRd
+#' 
+.clean_cols <- function(lay)
 {
-  mat <- lay@mat
-  widths <- lay@widths
+  mat <- lay$mat
+  widths <- lay$widths
   i <- 1
   while(i < ncol(mat))
   {
@@ -108,16 +113,20 @@ layShow <- function(layout) {
       widths <- widths[-(i+1)]
     } else i <- i + 1
   }
-  lay@mat <- mat
-  lay@widths <- widths
+  lay$mat <- mat
+  lay$widths <- widths
   lay
 }
 
-
-.cleanRows <- function(lay)
+#' Internal customLayout function for shrinking the size of layuot's matrix.
+#'
+#' @param lay a CustomLayout object.
+#' @noRd
+#' 
+.clean_rows <- function(lay)
 {
-  mat <- lay@mat
-  heights <- lay@heights
+  mat <- lay$mat
+  heights <- lay$heights
   i <- 1
   while(i < nrow(mat))
   {
@@ -128,15 +137,20 @@ layShow <- function(layout) {
       heights <- heights[-(i+1)]
     } else i <- i + 1
   }
-  lay@mat <- mat
-  lay@heights <- heights
+  lay$mat <- mat
+  lay$heights <- heights
   lay
 }
 
-.cleanLay <- function(lay)
+#' Internal customLayout function for shrinking the size of layuot's matrix.
+#'
+#' @param lay a CustomLayout object.
+#' @noRd
+#' 
+.clean_lay <- function(lay)
 {
-  lay <- .cleanCols(lay)
-  lay <- .cleanRows(lay)
+  lay <- .clean_cols(lay)
+  lay <- .clean_rows(lay)
   lay
 }
 
@@ -144,12 +158,8 @@ layShow <- function(layout) {
 .getGCD <- function(a,b) ifelse (b==0, a, .getGCD(b, a %% b)) 
 .getSCM <- function(a,b) (a*b)/.getGCD(a,b)
 
-
-
-
 .multipleGCD <- function(x) 
 {
   for(i in 2:length(x)) x[i] <- .getGCD(x[i-1],x[i])
   utils::tail(x,1) 
 }
-
