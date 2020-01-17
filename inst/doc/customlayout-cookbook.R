@@ -1,10 +1,10 @@
-## ----setup, include = FALSE----------------------------------------------
+## ----setup, include = FALSE---------------------------------------------------
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
 
-## ---- message=FALSE, fig.width=6, fig.height=4---------------------------
+## ---- message=FALSE, fig.width=6, fig.height=4--------------------------------
 library(customLayout)
 library(ggplot2)
 library(klaR)    # for GermanCredit dataset
@@ -62,7 +62,7 @@ layWithLegendTop <- lay_bind_row(
   legendPlaceholder, lay, heights = c(1, 6))
 lay_grid(c(list(legendTop), plList), layWithLegendTop)
 
-## ---- results='hide'-----------------------------------------------------
+## ---- results='hide'----------------------------------------------------------
 library(officer)
 library(customLayout)
 library(ggplot2)
